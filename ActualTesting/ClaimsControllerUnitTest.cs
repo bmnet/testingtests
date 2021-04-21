@@ -1,4 +1,6 @@
 using System;
+using System.Net;
+using System.Threading.Tasks;
 using System.Web.Http.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -22,16 +24,8 @@ namespace ActualTesting
         }
 
         [TestMethod]
-        public async void GetClaims()
+        public async Task GetClaims()
         {
-            //// act
-            //var result = await claimController.Get();
-            //var okResult = result as OkObjectResult;
-
-            //// assert
-            //Assert.IsNotNull(okResult);
-            //Assert.AreEqual(200, okResult.StatusCode);
-
             // Arrange
             var mockRepository = new Mock<IRepositoryClaims>();
             mockRepository.Setup(c => c.Get(Guid.Parse("5570d15a-b679-4f20-83f8-f96b2b3b9bc8")))
@@ -45,32 +39,39 @@ namespace ActualTesting
             var controller = new ClaimsController(mockRepository.Object);
 
             // Act
-            IActionResult actionResult = await controller.Get(Guid.Parse("5570d15a-b679-4f20-83f8-f96b2b3b9bc8"));
-            var contentResult = actionResult as OkNegotiatedContentResult<Claim>;
+            var result = await controller.Get(Guid.Parse("5570d15a-b679-4f20-83f8-f96b2b3b9bc8"));
+
+
+            var contentResult = result as OkObjectResult;
+            var returnValue = contentResult.Value as Claim;
 
             // Assert
-            Assert.IsNotNull(contentResult);
-            Assert.IsNotNull(contentResult.Content);
-            Assert.AreEqual(Guid.Parse("5570d15a-b679-4f20-83f8-f96b2b3b9bc8"), contentResult.Content.ClaimId);
+            Assert.AreEqual(contentResult.StatusCode, 200);
+            Assert.IsNotNull(returnValue);
+            Assert.AreEqual(Guid.Parse("5570d15a-b679-4f20-83f8-f96b2b3b9bc8"), returnValue.ClaimId);
 
         }
 
         [TestMethod]
-        public async void CreateClaim()
+        public async Task CreateClaim()
         {
+            // Arrange
             Claim testClaim = new Claim
             {
                 Description = "My test claim",
                 Payout = 999.99
             };
 
-            // act
+            // Act
             var result = await claimController.Post(testClaim);
-            var okResult = result as OkObjectResult;
 
-            // assert
-            Assert.IsNotNull(okResult);
-            Assert.AreEqual(200, okResult.StatusCode);
+            // Assert
+            var createdAtActionResult = result as CreatedAtActionResult;
+            var returnValue = createdAtActionResult.Value as Claim;
+
+            Assert.AreEqual(createdAtActionResult.StatusCode, 201);
+            Assert.AreEqual(returnValue.Description, testClaim.Description);
+            Assert.AreEqual(returnValue.Payout, testClaim.Payout);
         }
     }
 }
